@@ -69,3 +69,9 @@ input[aria-invalid=true] { border-color: var(--error); background: #fff7f4; }
   .summary { grid-template-areas: "date" "limit" "metrics"; }
   .summary dl div { flex-wrap: wrap; }
 }
+.date-form { grid-area: date; }
+.date-form label { grid-area: auto; }
+.switch + form { margin-top: 12px; }
+.input-error, small[role=status]:empty { display: none; }
+input:user-invalid + .input-error { display: block; color: var(--error); }
+input:user-invalid, select:user-invalid { border-color: var(--error); }
