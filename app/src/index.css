@@ -1,7 +1,22 @@
-:root { font-family: Inter, 'Segoe UI', sans-serif; color: #183d34; background: #f4f5ee; }
+:root {
+  --ink: #173e34;
+  --muted: #53685f;
+  --paper: #f4f5ef;
+  --surface: #fff;
+  --soft: #eff4e9;
+  --line: #cfdacf;
+  --forest: #174536;
+  --lime: #dcf49b;
+  --focus: #2373bd;
+  --error: #922d2a;
+  font-family: Inter, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+}
 * { box-sizing: border-box; }
-body { margin: 0; }
+body, h1, h2, p, dl, dd, ul { margin: 0; }
 button, input, select { font: inherit; }
 button, summary { cursor: pointer; }
-:focus-visible { outline: 3px solid #317dc0; outline-offset: 3px; }
-h1, h2, p, dl, dd, ul { margin: 0; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+dd, b, .limit strong, .chart-row span { font-variant-numeric: tabular-nums; }

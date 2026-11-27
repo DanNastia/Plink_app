@@ -1,14 +1,14 @@
 main { max-width: 1040px; margin: auto; padding: 0 24px 48px; }
 header, .line, li, .actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-header { padding: 18px 0; border-bottom: 1px solid #ccd6c9; color: #52675c; font-size: .88rem; }
-.brand { color: #183d34; font-size: 2rem; letter-spacing: -.08em; font-weight: 800; }
+header { padding: 18px 0; border-bottom: 1px solid #ccd6c9; color: var(--muted); font-size: .88rem; }
+.brand { color: var(--ink); font-size: 2rem; letter-spacing: -.08em; font-weight: 800; }
 .brand span { color: #608829; }
 h1 { margin: 32px 0 20px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.05em; }
 h2 { font-size: 1.25rem; margin-bottom: 18px; }
-section { min-width: 0; background: #fff; border: 1px solid #d5ddcf; border-radius: 18px; padding: 24px; overflow-wrap: anywhere; }
-.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 32px; background: #163e33; color: white; }
+section { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; overflow-wrap: anywhere; }
+.summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 32px; background: var(--forest); color: white; }
 .summary label { grid-column: 1/-1; max-width: 220px; }
-.limit strong { font-size: clamp(2.8rem, 7vw, 4.5rem); color: #ddf49a; line-height: 1.1; }
+.limit strong { font-size: clamp(2.8rem, 7vw, 4.5rem); color: var(--lime); line-height: 1.1; }
 .summary small { color: #d8e4d3; }
 .summary dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #547265; }
 dd, b { font-weight: 650; }
@@ -16,15 +16,15 @@ dd, b { font-weight: 650; }
 .grid { margin: 16px 0; align-items: start; }
 form, .forecast { display: grid; gap: 12px; }
 label { display: grid; gap: 6px; font-size: .9rem; }
-input, select { min-width: 0; width: 100%; padding: 10px; border: 1px solid #aebeb3; border-radius: 7px; background: #fff; color: #193d34; }
+input, select { min-width: 0; width: 100%; padding: 10px; border: 1px solid #aebeb3; border-radius: 7px; background: var(--surface); color: #193d34; }
 button, summary { border-radius: 8px; padding: 10px 14px; }
 button { border: 1px solid transparent; background: #234f41; color: white; }
 button:disabled { background: #e7ebe4; color: #586658; cursor: default; }
 .secondary, .switch button { background: #f0f3eb; color: #234f41; }
 .switch { display: flex; gap: 6px; }
 .switch button[aria-pressed=true] { background: #d9eda2; font-weight: 650; }
-small { display: block; color: #53675a; line-height: 1.5; }
-.plan { padding: 16px; background: #f4f7ed; border-radius: 12px; }
+small { display: block; color: var(--muted); line-height: 1.5; }
+.plan { padding: 16px; background: var(--soft); border-radius: 12px; }
 .plan p, .forecast, details form, .chart-row { margin-top: 12px; }
 .actions { justify-content: flex-start; margin-top: 14px; flex-wrap: wrap; }
 summary { margin-top: 12px; background: #eef2e8; font-weight: 600; }
@@ -39,4 +39,33 @@ li { padding: 12px 0; border-top: 1px solid #dce3d8; }
   .summary label { max-width: none; }
   .actions { display: grid; }
   .line, li { flex-wrap: wrap; }
+}
+/* Сводка читается слева направо на широком экране и сверху вниз на телефоне. */
+.summary { grid-template-areas: "limit date" "limit metrics"; align-items: center; padding: clamp(20px, 4vw, 40px); }
+.summary label { grid-area: date; max-width: none; }
+.summary dl { grid-area: metrics; }
+.limit { grid-area: limit; }
+.limit h2 { color: #e5f0e5; font-size: 1.05rem; font-weight: 550; }
+.limit strong { display: block; letter-spacing: -.055em; margin-block: 6px; }
+.summary input { background: #f3f7ed; }
+section { box-shadow: 0 3px 12px #173e3408; }
+h2 { line-height: 1.22; letter-spacing: -.025em; }
+form label { font-size: .92rem; font-weight: 550; }
+button, summary { font-weight: 600; min-height: 44px; }
+input, select { min-height: 44px; font-weight: 400; }
+.switch { padding: 4px; background: var(--soft); border-radius: 12px; }
+.switch button { flex: 1; }
+.switch button[aria-pressed=true] { background: var(--forest); color: white; }
+.forecast dl > div { background: var(--soft); border-radius: 10px; padding: 12px; }
+.forecast dd { font-size: 1.2rem; }
+@media (hover: hover) {
+  button:enabled:hover { background: #31634f; color: white; }
+  summary:hover, .secondary:enabled:hover { background: #dce8cd; color: var(--ink); }
+  input:not([readonly]):hover, select:hover { border-color: var(--forest); }
+}
+input[aria-invalid=true] { border-color: var(--error); background: #fff7f4; }
+.field-error { font-size: .9rem; color: var(--error); font-weight: 550; }
+@media (max-width: 680px) {
+  .summary { grid-template-areas: "date" "limit" "metrics"; }
+  .summary dl div { flex-wrap: wrap; }
 }
