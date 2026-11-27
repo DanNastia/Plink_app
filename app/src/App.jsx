@@ -1,122 +1,44 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import BudgetSummary from './components/BudgetSummary'
+import TransactionForm from './components/TransactionForm'
+import Obligations from './components/Obligations'
+import PurchaseForecast from './components/PurchaseForecast'
+import ExpenseChart from './components/ExpenseChart'
+import TransactionList from './components/TransactionList'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+const categories = { income: ['Стипендия', 'Начальный остаток'], expense: ['Продукты', 'ЖКХ', 'Транспорт'] }
+const initialEntries = [
+  { id: 't2', title: 'Продукты', income: false, amountKop: 10000 },
+  { id: 't1', title: 'Стипендия', income: true, amountKop: 100000 },
+]
+const food = { title: 'Продукты', amountKop: 10000, percent: 100 }
+const plan = { title: 'ЖКХ', amountKop: 30000, due: '12 мая' }
+// Готовые снимки сценария A-04. Итоги позднее предоставит финансовый модуль.
+const snapshots = {
+  pending: { balance: 90000, reserve: 30000, free: 60000, limit: 20000, after: 15000 },
+  paid: { balance: 60000, reserve: 0, free: 60000, limit: 20000, after: 15000 },
+  cancelled: { balance: 90000, reserve: 0, free: 90000, limit: 30000, after: 25000 },
 }
 
-export default App
+export default function App() {
+  const [status, setStatus] = useState('pending')
+  const budget = snapshots[status]
+  const paid = status === 'paid'
+  const entries = paid ? [{ id: 't3', title: 'ЖКХ', income: false, amountKop: 30000 }, ...initialEntries] : initialEntries
+  const rows = paid ? [{ title: 'ЖКХ', amountKop: 30000, percent: 75 }, { ...food, percent: 25 }] : [food]
+  return (
+    <main lang="ru">
+      <header><span className="brand">plink<span>.</span></span><span>Деморежим · 10 мая 2026</span></header>
+      <h1>Мой бюджет</h1>
+      <BudgetSummary budget={budget} nextIncomeDate="2026-05-13" days={3} />
+      <div className="grid">
+        <TransactionForm categories={categories} today="2026-05-10" />
+        <Obligations plan={plan} status={status} categories={categories.expense} onPay={() => setStatus('paid')} onCancel={() => setStatus('cancelled')} />
+        <PurchaseForecast before={budget.limit} after={budget.after} />
+        <ExpenseChart rows={rows} month="Май 2026" />
+      </div>
+      <TransactionList entries={entries} date="10 мая 2026" />
+    </main>
+  )
+}
