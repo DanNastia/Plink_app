@@ -1,122 +1,46 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import BudgetSummary from './components/BudgetSummary'
+import TransactionForm from './components/TransactionForm'
+import Obligations from './components/Obligations'
+import PurchaseForecast from './components/PurchaseForecast'
+import ExpenseChart from './components/ExpenseChart'
+import TransactionList from './components/TransactionList'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const categories = { income: [['stipend', 'Стипендия'], ['opening', 'Начальный остаток']], expense: [['food', 'Продукты'], ['home', 'ЖКХ'], ['transport', 'Транспорт']] }
+const initialEntries = [
+  { id: 't2', title: 'Продукты', income: false, amountKop: 10000 },
+  { id: 't1', title: 'Стипендия', income: true, amountKop: 100000 },
+]
+const food = { title: 'Продукты', amountKop: 10000, percent: 100 }
+const plan = { id: 'p1', title: 'ЖКХ', amountKop: 30000, due: '12 мая' }
+// Готовые снимки сценария A-04. Итоги позднее предоставит финансовый модуль.
+const budget = { balance: 90000, reserve: 30000, free: 60000, limit: 20000 }
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// На этапе интеграции App передаст rawAmount в parseAmountKop.
+function previewDraft({ rawAmount, categoryId }) {
+  const label = Object.values(categories).flat().find(([id]) => id === categoryId)?.[1]
+  return `Черновик: ${label}, ${rawAmount} ₽. Сохранение пока недоступно.`
 }
 
-export default App
+function previewForecast(rawPrice) {
+  return /^150([.,]0{1,2})?$/.test(rawPrice)
+    ? { before: { dailyLimitKop: 20000, deficitKop: 0 }, after: { dailyLimitKop: 15000, deficitKop: 0 } }
+    : null
+}
+
+export default function App() {
+  return (
+    <main lang="ru">
+      <header><span className="brand">plink<span>.</span></span><span>Деморежим · 10 мая 2026</span></header>
+      <h1>Мой бюджет</h1>
+      <BudgetSummary budget={budget} nextIncomeDate="2026-05-13" days={3} today="2026-05-10" onSaveDate={() => 'Сохранение даты пока недоступно. Сводка показывает пример.'} />
+      <div className="grid">
+        <TransactionForm onAddTransaction={previewDraft} categories={categories} today="2026-05-10" />
+        <Obligations plan={plan} categories={categories.expense} onAdd={previewDraft} onPay={() => 'Оплата пока недоступна. Расход не создан.'} onCancel={() => 'Отмена пока недоступна. План остаётся в списке.'} />
+        <PurchaseForecast onForecast={previewForecast} />
+        <ExpenseChart rows={[food]} month="Май 2026" />
+      </div>
+      <TransactionList entries={initialEntries} date="10 мая 2026" />
+    </main>
+  )
+}
