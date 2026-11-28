@@ -1,3 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
+import { calculateBalanceKop, parseAmountKop } from './finance.js'
+import { calculateBudget, forecastPurchase } from './budget-rules.js'
+import { loadState, saveState } from './storage.js'
+import { currentMonth, displayDate, expenseRows, localDate } from './components/budgetView.js'
 import BudgetSummary from './components/BudgetSummary'
 import TransactionForm from './components/TransactionForm'
 import Obligations from './components/Obligations'
@@ -6,41 +11,149 @@ import ExpenseChart from './components/ExpenseChart'
 import TransactionList from './components/TransactionList'
 import './App.css'
 
-const categories = { income: [['stipend', 'Стипендия'], ['opening', 'Начальный остаток']], expense: [['food', 'Продукты'], ['home', 'ЖКХ'], ['transport', 'Транспорт']] }
-const initialEntries = [
-  { id: 't2', title: 'Продукты', income: false, amountKop: 10000 },
-  { id: 't1', title: 'Стипендия', income: true, amountKop: 100000 },
-]
-const food = { title: 'Продукты', amountKop: 10000, percent: 100 }
-const plan = { id: 'p1', title: 'ЖКХ', amountKop: 30000, due: '12 мая' }
-// Готовые снимки сценария A-04. Итоги позднее предоставит финансовый модуль.
-const budget = { balance: 90000, reserve: 30000, free: 60000, limit: 20000 }
-
-// На этапе интеграции App передаст rawAmount в parseAmountKop.
-function previewDraft({ rawAmount, categoryId }) {
-  const label = Object.values(categories).flat().find(([id]) => id === categoryId)?.[1]
-  return `Черновик: ${label}, ${rawAmount} ₽. Сохранение пока недоступно.`
+const categories = {
+  income: [['stipend', 'Стипендия'], ['opening', 'Начальный остаток']],
+  expense: [['food', 'Продукты'], ['home', 'ЖКХ'], ['transport', 'Транспорт']],
 }
 
-function previewForecast(rawPrice) {
-  return /^150([.,]0{1,2})?$/.test(rawPrice)
-    ? { before: { dailyLimitKop: 20000, deficitKop: 0 }, after: { dailyLimitKop: 15000, deficitKop: 0 } }
-    : null
+function readInitialState() {
+  try {
+    return { state: loadState(categories), readError: null }
+  } catch (error) {
+    return { state: null, readError: error.message }
+  }
+}
+
+function budgetInput(state, today) {
+  return {
+    balanceKop: calculateBalanceKop(state.transactions),
+    obligations: state.obligations,
+    nextIncomeDate: state.nextIncomeDate,
+    today,
+  }
+}
+
+function useToday() {
+  const [today, setToday] = useState(localDate)
+  useEffect(() => {
+    let timer
+    function refresh() {
+      const now = new Date()
+      setToday(localDate(now))
+      const midnight = new Date(now)
+      midnight.setHours(24, 0, 0, 0)
+      clearTimeout(timer)
+      timer = setTimeout(refresh, midnight - now)
+    }
+    refresh()
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [])
+  return today
 }
 
 export default function App() {
-  return (
-    <main lang="ru">
-      <header><span className="brand">plink<span>.</span></span><span>Деморежим · 10 мая 2026</span></header>
-      <h1>Мой бюджет</h1>
-      <BudgetSummary budget={budget} nextIncomeDate="2026-05-13" days={3} today="2026-05-10" onSaveDate={() => 'Сохранение даты пока недоступно. Сводка показывает пример.'} />
+  const [{ state, readError }, setSession] = useState(readInitialState)
+  const saved = useRef(state)
+  const today = useToday()
+
+  function commit(change) {
+    try {
+      const actionDate = localDate()
+      const next = change(saved.current, actionDate)
+      calculateBudget(budgetInput(next, actionDate))
+      saveState(next, categories)
+      saved.current = next
+      setSession({ state: next, readError: null })
+      return null
+    } catch (error) {
+      return error.message
+    }
+  }
+
+  function addTransaction({ rawAmount, ...fields }) {
+    return commit((previous, actionDate) => {
+      if (fields.date > actionDate) throw new RangeError('Дата операции не может быть в будущем.')
+      const entry = { ...fields, id: crypto.randomUUID(), amountKop: parseAmountKop(rawAmount) }
+      return { ...previous, transactions: [...previous.transactions, entry] }
+    })
+  }
+
+  function addObligation({ rawAmount, ...fields }) {
+    return commit(previous => {
+      const plan = { ...fields, id: crypto.randomUUID(), amountKop: parseAmountKop(rawAmount), paidTransactionId: null }
+      return { ...previous, obligations: [...previous.obligations, plan] }
+    })
+  }
+
+  function changeObligation(id, pay) {
+    return commit((previous, actionDate) => {
+      const plan = previous.obligations.find(item => item.id === id)
+      if (!plan || plan.paidTransactionId !== null) throw new Error('Этот платёж уже обработан.')
+      if (!pay) return { ...previous, obligations: previous.obligations.filter(item => item.id !== id) }
+
+      const entry = {
+        id: crypto.randomUUID(),
+        type: 'expense',
+        date: actionDate,
+        amountKop: plan.amountKop,
+        categoryId: plan.categoryId,
+        comment: plan.title,
+      }
+      return {
+        ...previous,
+        transactions: [...previous.transactions, entry],
+        obligations: previous.obligations.map(item => item.id === id
+          ? { ...item, paidTransactionId: entry.id }
+          : item),
+      }
+    })
+  }
+
+  function saveDate(date) {
+    return commit((previous, actionDate) => {
+      if (date <= actionDate) throw new RangeError('Выберите будущую дату поступления.')
+      return { ...previous, nextIncomeDate: date }
+    })
+  }
+
+  let content
+  if (readError) {
+    content = <p role="alert">Не удалось прочитать сохранённые данные. {readError}</p>
+  } else {
+    const input = budgetInput(state, today)
+    let budget
+    let budgetError
+    try {
+      budget = calculateBudget(input)
+    } catch (error) {
+      budgetError = error.message
+    }
+    const available = budget?.status === 'available'
+    content = <>
+      <BudgetSummary budget={budget} budgetError={budgetError} balanceKop={input.balanceKop}
+        nextIncomeDate={state.nextIncomeDate} onSaveDate={saveDate} />
       <div className="grid">
-        <TransactionForm onAddTransaction={previewDraft} categories={categories} today="2026-05-10" />
-        <Obligations plan={plan} categories={categories.expense} onAdd={previewDraft} onPay={() => 'Оплата пока недоступна. Расход не создан.'} onCancel={() => 'Отмена пока недоступна. План остаётся в списке.'} />
-        <PurchaseForecast onForecast={previewForecast} />
-        <ExpenseChart rows={[food]} month="Май 2026" />
+        <TransactionForm onAddTransaction={addTransaction} categories={categories} today={today} />
+        <Obligations plans={state.obligations} categories={categories.expense} today={today}
+          nextIncomeDate={available ? state.nextIncomeDate : null} onAdd={addObligation}
+          onPay={id => changeObligation(id, true)} onCancel={id => changeObligation(id, false)} />
+        <PurchaseForecast available={available}
+          onForecast={price => forecastPurchase(input, parseAmountKop(price))} />
+        <ExpenseChart rows={expenseRows(state.transactions, categories.expense, today)} month={currentMonth(today)} />
       </div>
-      <TransactionList entries={initialEntries} date="10 мая 2026" />
-    </main>
-  )
+      <TransactionList entries={state.transactions} categories={categories} />
+    </>
+  }
+
+  return <main lang="ru">
+    <header><span className="brand">plink<span>.</span></span><span>{displayDate(today)}</span></header>
+    <h1>Мой бюджет</h1>
+    {content}
+  </main>
 }

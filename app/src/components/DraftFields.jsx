@@ -1,11 +1,12 @@
 import { useState } from 'react'
 
-// Поля остаются в форме до подключения финансового модуля и хранилища.
 export default function DraftFields({ categories, today, type, onSubmitDraft }) {
   const isPlan = type === 'plan'
   const [amount, setAmount] = useState('')
   const [categoryId, setCategory] = useState('')
-  const [date, setDate] = useState(isPlan ? '' : today)
+  const defaultDate = isPlan ? '' : today
+  const [selectedDate, setDate] = useState(null)
+  const date = selectedDate ?? defaultDate
   const [text, setText] = useState('')
   const [feedback, setFeedback] = useState('')
   return <form onChange={() => setFeedback('')} onSubmit={event => {
@@ -13,7 +14,14 @@ export default function DraftFields({ categories, today, type, onSubmitDraft }) 
     const fields = isPlan
       ? { title: text.trim(), rawAmount: amount, categoryId, dueDate: date }
       : { type, rawAmount: amount, categoryId, date, comment: text }
-    setFeedback(onSubmitDraft(fields))
+    const error = onSubmitDraft(fields)
+    setFeedback(error ?? (isPlan ? 'Платёж сохранён.' : 'Операция добавлена.'))
+    if (error) return
+
+    setAmount('')
+    setCategory('')
+    setDate(null)
+    setText('')
   }}>
     {isPlan && <label>Название<input required pattern=".*\S.*" value={text} onChange={e => setText(e.target.value)} /></label>}
     <div className="fields">
@@ -25,7 +33,7 @@ export default function DraftFields({ categories, today, type, onSubmitDraft }) 
     </div>
     <label>{isPlan ? 'Срок оплаты' : 'Дата'}<input type="date" required max={isPlan ? undefined : today} value={date} onChange={e => setDate(e.target.value)} /></label>
     {!isPlan && <label>Комментарий (необязательно)<input value={text} onChange={e => setText(e.target.value)} /></label>}
-    <button>Проверить черновик</button>
+    <button>{isPlan ? 'Сохранить платёж' : type === 'income' ? 'Добавить доход' : 'Добавить расход'}</button>
     <small role="status">{feedback}</small>
   </form>
 }
