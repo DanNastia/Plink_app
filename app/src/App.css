@@ -75,3 +75,5 @@ input[aria-invalid=true] { border-color: var(--error); background: #fff7f4; }
 .input-error, small[role=status]:empty { display: none; }
 input:user-invalid + .input-error { display: block; color: var(--error); }
 input:user-invalid, select:user-invalid { border-color: var(--error); }
+
+.plan + .plan { margin-top: 12px; }
